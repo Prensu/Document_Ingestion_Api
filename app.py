@@ -3,6 +3,9 @@ from PyPDF2 import PdfReader
 from sentence_transformers import SentenceTransformer
 import re
 import io 
+from nltk.tokenize import sent_tokenize
+import nltk
+import pinecone
 
 def extract_text(file:uploadedfile):
     content=file.file.read()
@@ -35,7 +38,7 @@ def chunk_fixed(text,max_chars=1000,overlap=200):
         start += max_chars - overlap
     return chunks
 
-def chunk_sentence(text,max_chars500,overlap=100):
+def chunk_sentence(text,max_chars=500,overlap=100):
     from nltk.tokenize import sent_tokenize
     sentences=sent_tokenize(text)
     chunks=[]
@@ -68,6 +71,23 @@ CHUNKERS={
     "fixed":chunk_fixed,
     "sentence":chunk_sentence
 }
+
+#embedding model
+embedding_model=SentenceTransformer('all-MiniLM-L6-v2')
+
+def get_embeddings(text_chunks):
+    embeddings=embedding_model.encode(text_chunks, convert_to_tensor=True)
+    return embeddings   
+
+
+#upload to Pinecone
+ids = [f"{file.filename}_{i}" for i in range(len(chunks))]
+    vectors = [(id_, emb.tolist()) for id_, emb in zip(ids, embeddings)]
+    index.upsert(vectors)
+
+
+
+
 
 
 
